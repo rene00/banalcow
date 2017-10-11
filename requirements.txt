@@ -1,0 +1,4 @@
+pypass
+selenium
+ipython
+PyYaml
