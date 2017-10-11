@@ -24,7 +24,6 @@ class Netbank:
         user_field.send_keys(self.username)
         password_field.send_keys(self.password)
         submit_button.click()
-        self.driver.implicitly_wait(5)
         self.homepage = self.driver.current_url
 
     @property
