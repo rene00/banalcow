@@ -24,6 +24,8 @@ class Netbank:
         user_field.send_keys(self.username)
         password_field.send_keys(self.password)
         submit_button.click()
+        self.driver.implicitly_wait(5)
+        self.homepage = self.driver.current_url
 
     @property
     def accounts(self):
@@ -34,7 +36,7 @@ class Netbank:
         )
 
         accounts = {}
-        account = namedtuple('account', 'nickname balance funds')
+        account = namedtuple('account', 'nickname balance funds href')
 
         for row in table.find_elements_by_xpath(".//tr"):
             bsb = None
@@ -46,6 +48,12 @@ class Netbank:
                     accountnumber = td.text.replace(' ', '')
                 elif _class == 'NicknameField FirstCol':
                     nickname = td.text
+                    div = td.find_elements_by_xpath(
+                        '//*[@id="{0}"]/div/div[1]'.
+                        format(td.get_attribute('id'))
+                    )[0]
+                    anchor = div.find_elements_by_xpath('.//a')[0]
+                    href = anchor.get_attribute('href')
                 elif _class == ('AccountBalanceField CurrencyField '
                                 'CurrencyFieldBold'):
                     balance = td.text
@@ -61,7 +69,8 @@ class Netbank:
             else:
                 accountnumber = "{0}{1}".format(bsb, accountnumber)
                 accounts[accountnumber] = account(
-                    nickname=nickname, balance=balance, funds=funds
+                    nickname=nickname, balance=balance, funds=funds,
+                    href=href
                 )
 
         return accounts
@@ -71,3 +80,10 @@ class Netbank:
             'ctl00_HeaderControl_logOffLink'
         )
         submit_button.click()
+
+    def access_homepage(self):
+        self.driver.get(self.homepage)
+
+    def access_account(self, accountnumber):
+        href = self.accounts[accountnumber].href
+        self.driver.get(href)
