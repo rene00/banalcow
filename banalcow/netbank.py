@@ -1,18 +1,84 @@
+from collections import namedtuple
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from collections import namedtuple
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support.ui import Select
+from selenium.common.exceptions import (NoSuchElementException,
+                                        WebDriverException)
+import datetime
 import os
+import time
+import shutil
+from IPython import embed
+from banalcow import banalutil
+
+
+class NetbankError(Exception):
+    pass
 
 
 class Netbank:
     login_url = "https://www.my.commbank.com.au/netbank/Logon/Logon.aspx"
+    date_fmt = "%d/%m/%Y"
 
-    def __init__(self, username, password):
+    def __init__(self, username, password, **kwargs):
         self.username = username
         self.password = password
         self.chromeOpts = webdriver.ChromeOptions()
         self.prefs = {"download.default_directory": os.getcwd()}
         self.chromeOpts.add_experimental_option("prefs", self.prefs)
+        self.from_date = kwargs.get('from_date')
+        self.to_date = kwargs.get('to_date')
+
+        if self.__from_date > self.__to_date:
+            raise NetbankError(
+                "{0} is greater than {1}".
+                format(self.__from_date, self.__to_date)
+            )
+
+    @property
+    def today(self):
+        return datetime.datetime.now()
+
+    @property
+    def last_year(self):
+        return banalutil.pastdt()
+
+    @property
+    def from_date(self):
+        return self.__from_date
+
+    @from_date.setter
+    def from_date(self, from_date):
+        if from_date is None:
+            self.__from_date = self.last_year
+        else:
+            try:
+                self.__from_date = datetime.datetime.strptime(
+                    from_date, self.date_fmt
+                )
+            except ValueError:
+                raise NetbankError(
+                    "{0} does not match {1}".format(from_date, self.date_fmt)
+                )
+
+    @property
+    def to_date(self):
+        return self.__to_date
+
+    @to_date.setter
+    def to_date(self, to_date):
+        if to_date is None:
+            self.__to_date = self.today
+        else:
+            try:
+                self.__to_date = datetime.datetime.strptime(
+                    to_date, self.date_fmt
+                )
+            except ValueError:
+                raise NetbankError(
+                    "{0} does not match {1}".format(to_date, self.date_fmt)
+                )
 
     def login(self):
         self.driver = webdriver.Chrome(chrome_options=self.chromeOpts)
@@ -35,7 +101,7 @@ class Netbank:
         )
 
         accounts = {}
-        account = namedtuple('account', 'nickname balance funds href')
+        account = namedtuple('account', 'nickname balance funds href filename')
 
         for row in table.find_elements_by_xpath(".//tr"):
             bsb = None
@@ -67,9 +133,12 @@ class Netbank:
                 pass
             else:
                 accountnumber = "{0}{1}".format(bsb, accountnumber)
+                filename = banalutil.filename(
+                    accountnumber, self.from_date, self.to_date
+                )
                 accounts[accountnumber] = account(
                     nickname=nickname, balance=balance, funds=funds,
-                    href=href
+                    href=href, filename=filename
                 )
 
         return accounts
@@ -86,3 +155,85 @@ class Netbank:
     def access_account(self, accountnumber):
         href = self.accounts[accountnumber].href
         self.driver.get(href)
+
+    def set_date_widget(self, from_date=None, to_date=None):
+        """
+        Taking a start and end date as a str in the format of
+        'DD/MM/YYYY', will set the date from the account page
+        and submit search.
+        """
+        search_elem = self.driver.find_element_by_id(
+            'cba_advanced_search_trigger'
+        )
+        search_elem.click()
+        time.sleep(2)
+
+        date_elem = self.driver.find_element_by_xpath(
+            '//*[@id="ctl00_BodyPlaceHolder_radioSwitchDateRange_field"]/li[2]'
+        )
+        date_elem.click()
+        time.sleep(2)
+
+        from_date_elem = self.driver.find_element_by_xpath(
+            '//*[@id="ctl00_BodyPlaceHolder_fromCalTxtBox_field"]'
+        )
+        to_date_elem = self.driver.find_element_by_xpath(
+            '//*[@id="ctl00_BodyPlaceHolder_toCalTxtBox_field"]'
+        )
+
+        if from_date and to_date:
+            # if both set, use them, otherwise default to tallying last month
+            from_date_elem.send_keys(from_date)
+            to_date_elem.send_keys(to_date)
+
+        else:
+            from_date_elem.send_keys(self.from_date.strftime(self.date_fmt))
+            to_date_elem.send_keys(self.to_date.strftime(self.date_fmt))
+
+        self.driver.execute_script("window.scrollBy(0, 100)")
+        time.sleep(4)
+
+        search_button_elem = self.driver.find_element_by_id(
+            'ctl00_BodyPlaceHolder_lbSearch'
+        )
+        search_button_elem.click()
+        time.sleep(2)
+
+        pass
+
+    def download_ofx(self, filename):
+        try:
+            export_elem = self.driver.find_element_by_xpath(
+                '//*[@id="ctl00_ToobarFooterRight_updatePanelExport"]/div/a'
+            )
+            export_elem.send_keys(Keys.NULL)
+            export_elem.click()
+        except (NoSuchElementException, WebDriverException) as e:
+            print(e)
+            embed()
+
+        time.sleep(2)
+
+        try:
+            export_type_elem = Select(
+                self.driver.find_element_by_xpath(
+                    '//*[@id="ctl00_ToobarFooterRight_ddlExportType_field"]'
+                )
+            )
+        except (NoSuchElementException, WebDriverException) as e:
+            print(e)
+            embed()
+        else:
+            export_type_elem.select_by_value('OFX')
+
+        try:
+            submit_button = self.driver.find_element_by_xpath(
+                '//*[@id="ctl00_ToobarFooterRight_lbExport"]'
+            )
+        except (NoSuchElementException, WebDriverException) as e:
+            print(e)
+            embed()
+        else:
+            submit_button.click()
+            time.sleep(2)
+            shutil.move('OFXData.ofx', filename)
