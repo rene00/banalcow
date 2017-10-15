@@ -39,9 +39,9 @@ class Config:
         penny = namedtuple('penny', 'login_url username password')
         if self.pypass:
             # FIXME: aviau/python-pass#12
-            login_url = yaml.load(
+            base_url = yaml.load(
                 self.pypass.get_decypted_password('Personal/penny')
-            )['login_url']
+            )['base_url']
             username = self.pypass.get_decypted_password(
                 'Personal/penny', pypass.EntryType.username
             )
@@ -49,11 +49,11 @@ class Config:
                 'Personal/penny', pypass.EntryType.password
             )
         else:
-            login_url = self.data['penny']['login_url']
+            base_url = self.data['penny']['base_url']
             username = self.data['penny']['username']
             password = self.data['penny']['password']
         return penny(
-            login_url=str(login_url),
+            base_url=str(base_url),
             username=str(username),
             password=str(password)
         )
