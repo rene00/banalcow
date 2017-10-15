@@ -36,7 +36,7 @@ class Config:
 
     @property
     def penny(self):
-        penny = namedtuple('penny', 'login_url username password')
+        penny = namedtuple('penny', 'base_url username password')
         if self.pypass:
             # FIXME: aviau/python-pass#12
             base_url = yaml.load(
