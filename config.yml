@@ -1,2 +1,3 @@
 pypass:
   path: /home/rene/.password-store
+penny: True
