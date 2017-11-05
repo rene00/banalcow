@@ -6,14 +6,18 @@ from selenium.webdriver.support.ui import Select
 from selenium.common.exceptions import (NoSuchElementException,
                                         WebDriverException)
 import datetime
-import os
 import time
 import shutil
 from IPython import embed
 from banalcow import banalutil
+import os
 
 
 class NetbankError(Exception):
+    pass
+
+
+class FileNotFoundError(OSError):
     pass
 
 
@@ -24,9 +28,6 @@ class Netbank:
     def __init__(self, username, password, **kwargs):
         self.username = username
         self.password = password
-        self.chromeOpts = webdriver.ChromeOptions()
-        self.prefs = {"download.default_directory": os.getcwd()}
-        self.chromeOpts.add_experimental_option("prefs", self.prefs)
         self.from_date = kwargs.get('from_date')
         self.to_date = kwargs.get('to_date')
 
@@ -35,6 +36,16 @@ class Netbank:
                 "{0} is greater than {1}".
                 format(self.__from_date, self.__to_date)
             )
+
+        options = webdriver.ChromeOptions()
+        options.add_experimental_option(
+            'prefs',
+            {
+                "download.default_directory": os.getcwd(),
+                "download.prompt_for_download": False
+            }
+        )
+        self.driver = webdriver.Chrome(chrome_options=options)
 
     @property
     def today(self):
@@ -81,8 +92,6 @@ class Netbank:
                 )
 
     def login(self):
-        self.driver = webdriver.Chrome(chrome_options=self.chromeOpts)
-        self.driver.implicitly_wait(5)
         self.driver.get(self.login_url)
         user_field = self.driver.find_element_by_id('txtMyClientNumber_field')
         password_field = self.driver.find_element_by_id('txtMyPassword_field')
