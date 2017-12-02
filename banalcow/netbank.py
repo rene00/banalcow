@@ -136,20 +136,24 @@ class Netbank:
 
             # If bsb can be coerced into an int, we are dealing with an
             # account row.
-            accountnumber = None
+            # accountnumber = None
             try:
                 int(bsb)
             except ValueError:
                 # CBA credit card has 'Awards' as text within the BSB field.
                 if bsb.lower() == 'awards':
-                    accountnumber = "{0}{1}".format(bsb, accountnumber)
+                    pass
             except TypeError:
                 # BSB is None. Move on.
-                pass
+                continue
             else:
                 accountnumber = "{0}{1}".format(bsb, accountnumber)
 
             if accountnumber:
+                # Skip CommSec accounts.
+                if nickname.lower() == 'commsec shares':
+                    continue
+
                 filename = banalutil.filename(
                     accountnumber, self.from_date, self.to_date
                 )
