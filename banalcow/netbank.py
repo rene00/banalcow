@@ -1,5 +1,4 @@
 from collections import namedtuple
-from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import Select
@@ -10,7 +9,7 @@ import time
 import shutil
 from IPython import embed
 from banalcow import banalutil
-import os
+from banalcow.driver import BanalDriver
 
 
 class NetbankError(Exception):
@@ -30,6 +29,10 @@ class Netbank:
         self.password = password
         self.from_date = kwargs.get('from_date')
         self.to_date = kwargs.get('to_date')
+        self.proxy = kwargs.get('proxy')
+        self.chrome_driver_executable_path = kwargs.get(
+            'chome_driver_executable_path'
+        )
 
         if self.__from_date > self.__to_date:
             raise NetbankError(
@@ -37,15 +40,11 @@ class Netbank:
                 format(self.__from_date, self.__to_date)
             )
 
-        options = webdriver.ChromeOptions()
-        options.add_experimental_option(
-            'prefs',
-            {
-                "download.default_directory": os.getcwd(),
-                "download.prompt_for_download": False
-            }
+        bd = BanalDriver(
+            proxy=self.proxy,
+            chrome_driver_executable_path=self.chrome_driver_executable_path
         )
-        self.driver = webdriver.Chrome(chrome_options=options)
+        self.driver = bd.driver
 
     @property
     def today(self):

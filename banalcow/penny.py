@@ -1,15 +1,25 @@
-from selenium import webdriver
 from urllib.parse import urljoin
 from collections import namedtuple
 import os
+from banalcow.driver import BanalDriver
 
 
 class Penny:
 
-    def __init__(self, base_url, username, password):
+    def __init__(self, base_url, username, password, **kwargs):
         self.base_url = base_url
         self.username = username
         self.password = password
+        self.proxy = kwargs.get('proxy')
+        self.chrome_driver_executable_path = kwargs.get(
+            'chome_driver_executable_path'
+        )
+
+        bd = BanalDriver(
+            proxy=self.proxy,
+            chrome_driver_executable_path=self.chrome_driver_executable_path
+        )
+        self.driver = bd.driver
 
     @property
     def url(self):
@@ -21,7 +31,6 @@ class Penny:
         )
 
     def login(self):
-        self.driver = webdriver.Chrome()
         self.driver.get(self.url.login)
         user_field = self.driver.find_element_by_xpath(
             '/html/body/div/div/div/div/div[2]/form/fieldset/div[1]/input'
