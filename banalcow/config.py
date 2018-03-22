@@ -19,11 +19,10 @@ class Config:
     def netbank(self):
         netbank = namedtuple('netbank', 'username password')
         if self.pypass:
-            # FIXME: aviau/python-pass#12
-            username = self.pypass.get_decypted_password(
+            username = self.pypass.get_decrypted_password(
                 'Personal/netbank', pypass.EntryType.username
             )
-            password = self.pypass.get_decypted_password(
+            password = self.pypass.get_decrypted_password(
                 'Personal/netbank', pypass.EntryType.password
             )
         else:
@@ -38,14 +37,13 @@ class Config:
     def penny(self):
         penny = namedtuple('penny', 'base_url username password')
         if self.pypass:
-            # FIXME: aviau/python-pass#12
             base_url = yaml.load(
-                self.pypass.get_decypted_password('Personal/penny')
+                self.pypass.get_decrypted_password('Personal/penny')
             )['base_url']
-            username = self.pypass.get_decypted_password(
+            username = self.pypass.get_decrypted_password(
                 'Personal/penny', pypass.EntryType.username
             )
-            password = self.pypass.get_decypted_password(
+            password = self.pypass.get_decrypted_password(
                 'Personal/penny', pypass.EntryType.password
             )
         else:
