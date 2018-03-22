@@ -31,7 +31,7 @@ class Netbank:
         self.to_date = kwargs.get('to_date')
         self.proxy = kwargs.get('proxy')
         self.chrome_driver_executable_path = kwargs.get(
-            'chome_driver_executable_path'
+            'chrome_driver_executable_path'
         )
 
         if self.__from_date > self.__to_date:
@@ -40,11 +40,11 @@ class Netbank:
                 format(self.__from_date, self.__to_date)
             )
 
-        bd = BanalDriver(
+        self.bd = BanalDriver(
+            chrome_driver_executable_path=self.chrome_driver_executable_path,
             proxy=self.proxy,
-            chrome_driver_executable_path=self.chrome_driver_executable_path
         )
-        self.driver = bd.driver
+        self.driver = self.bd.driver
 
     @property
     def today(self):
