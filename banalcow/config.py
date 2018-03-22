@@ -55,3 +55,10 @@ class Config:
             username=str(username),
             password=str(password)
         )
+
+    @property
+    def chrome_driver_executable_path(self):
+        try:
+            return self.data['chrome_driver_executable_path']
+        except KeyError:
+            return None
