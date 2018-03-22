@@ -1,7 +1,11 @@
 from banalcow import netbank, config, penny
 
 conf = config.Config('./config.yml')
-session = netbank.Netbank(conf.netbank.username, conf.netbank.password)
+session = netbank.Netbank(
+    conf.netbank.username, conf.netbank.password,
+    chrome_driver_executable_path=conf.chrome_driver_executable_path
+)
+
 session.login()
 
 accounts = session.accounts
