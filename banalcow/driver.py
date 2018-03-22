@@ -3,12 +3,11 @@ from selenium import webdriver
 
 
 class BanalDriver:
-    def __init__(self, **kwargs):
+    def __init__(self, chrome_driver_executable_path, **kwargs):
 
         self.proxy = kwargs.get('proxy')
-        self.executable_path = kwargs.get(
-            'executable_path', '/usr/lib/chromium-browser/chromedriver'
-        )
+        self.chrome_driver_executable_path = chrome_driver_executable_path
+
         options = webdriver.ChromeOptions()
 
         if self.proxy:
@@ -26,5 +25,5 @@ class BanalDriver:
 
         self.driver = webdriver.Chrome(
             chrome_options=options,
-            executable_path=self.executable_path,
+            executable_path=self.chrome_driver_executable_path
         )
