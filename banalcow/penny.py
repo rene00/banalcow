@@ -6,14 +6,13 @@ from banalcow.driver import BanalDriver
 
 class Penny:
 
-    def __init__(self, base_url, username, password, **kwargs):
+    def __init__(self, base_url, username, password,
+                 chrome_driver_executable_path, **kwargs):
         self.base_url = base_url
         self.username = username
         self.password = password
+        self.chrome_driver_executable_path = chrome_driver_executable_path
         self.proxy = kwargs.get('proxy')
-        self.chrome_driver_executable_path = kwargs.get(
-            'chome_driver_executable_path'
-        )
 
         bd = BanalDriver(
             proxy=self.proxy,
@@ -53,8 +52,7 @@ class Penny:
         self.driver.get(self.url.transactions_import)
         input_field = self.driver.find_element_by_xpath('//*[@id="upload"]')
         input_field.send_keys(os.getcwd() + "/" + filename)
-
         submit_button = self.driver.find_element_by_xpath(
-            '//*[@id="page-wrapper"]/div[2]/form/div[2]/div/div/input'
+            '//*[@id="page-wrapper"]/div[2]/form/div/div/div/input'
         )
         submit_button.click()
