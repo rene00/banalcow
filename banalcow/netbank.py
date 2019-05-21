@@ -182,6 +182,17 @@ class Netbank:
         'DD/MM/YYYY', will set the date from the account page
         and submit search.
         """
+
+        try:
+            view_full_transaction_history = self.driver.find_element_by_xpath(
+                '//*[@id="lnk-transactions-viewAll"]'
+            )
+        except NoSuchElementException:
+            pass
+        else:
+            view_full_transaction_history.click()
+            time.sleep(2)
+
         search_elem = self.driver.find_element_by_id(
             'cba_advanced_search_trigger'
         )
