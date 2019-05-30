@@ -4,6 +4,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import Select
 from selenium.common.exceptions import (NoSuchElementException,
                                         WebDriverException)
+from selenium.webdriver.common.action_chains import ActionChains
 import datetime
 import time
 import shutil
@@ -153,6 +154,9 @@ class Netbank:
                 if nickname.lower() == 'commsec shares':
                     continue
 
+                if nickname.lower() != 'home loan':
+                    continue
+
                 filename = banalutil.filename(
                     accountnumber, self.from_date, self.to_date
                 )
@@ -190,6 +194,10 @@ class Netbank:
         except NoSuchElementException:
             pass
         else:
+            ActionChains(self.driver).move_to_element(view_full_transaction_history).perform()
+            time.sleep(2)
+            self.driver.execute_script("window.scrollBy(0, -150);")
+            time.sleep(2)
             view_full_transaction_history.click()
             time.sleep(2)
 
