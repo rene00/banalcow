@@ -1,7 +1,8 @@
 from collections import namedtuple
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.support.ui import Select
+from selenium.webdriver.support.ui import Select, WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import (NoSuchElementException,
                                         WebDriverException)
 from selenium.webdriver.common.action_chains import ActionChains
@@ -105,8 +106,13 @@ class Netbank:
     def accounts(self):
         """Account information in the form of a dict of tuples."""
 
-        table = self.driver.find_element_by_xpath(
-            '//*[@id="MyPortfolioGrid1_a"]'
+        # Use WebDriverWait to wait for the presence of the portfolio table.
+        # This was taking a bit too long to render sometimes and selenium would
+        # throw an exception not being able to find the element in time.
+        table = WebDriverWait(self.driver, 30).until(
+            EC.presence_of_element_located(
+                (By.XPATH, '//*[@id="MyPortfolioGrid1_a"]')
+            )
         )
 
         accounts = {}
@@ -154,8 +160,8 @@ class Netbank:
                 if nickname.lower() == 'commsec shares':
                     continue
 
-                if nickname.lower() != 'home loan':
-                    continue
+                # if nickname.lower() != 'home loan':
+                #    continue
 
                 filename = banalutil.filename(
                     accountnumber, self.from_date, self.to_date
