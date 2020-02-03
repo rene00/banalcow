@@ -34,7 +34,8 @@ def main():
 
         for account, data in accounts.items():
             session.access_account(account)
-            session.set_date_widget()
+            if data.home_loan:
+                session.view_transactions()
             session.download_ofx(data.filename)
             session.access_homepage()
 
