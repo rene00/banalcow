@@ -3,9 +3,10 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import Select, WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import (NoSuchElementException,
-                                        WebDriverException)
-from selenium.webdriver.common.action_chains import ActionChains
+from selenium.common.exceptions import (
+    NoSuchElementException, WebDriverException,
+    TimeoutException
+)
 import datetime
 import time
 import shutil
@@ -102,7 +103,7 @@ class Netbank:
         submit_button.click()
         self.homepage = self.driver.current_url
 
-    @property
+    @property # noqa[C901]
     def accounts(self):
         """Account information in the form of a dict of tuples."""
 
@@ -116,10 +117,14 @@ class Netbank:
         )
 
         accounts = {}
-        account = namedtuple('account', 'nickname balance funds href filename')
+        account = namedtuple(
+            'account',
+            'nickname balance funds href filename home_loan'
+        )
 
         for row in table.find_elements_by_xpath(".//tr"):
             bsb = None
+            home_loan = False
             for td in row.find_elements(By.TAG_NAME, 'td'):
                 _class = td.get_attribute('class')
                 if _class == 'BSBField':
@@ -160,15 +165,15 @@ class Netbank:
                 if nickname.lower() == 'commsec shares':
                     continue
 
-                # if nickname.lower() != 'home loan':
-                #    continue
+                if nickname.lower() == 'home loan':
+                    home_loan = True
 
                 filename = banalutil.filename(
                     accountnumber, self.from_date, self.to_date
                 )
                 accounts[accountnumber] = account(
                     nickname=nickname, balance=balance, funds=funds,
-                    href=href, filename=filename
+                    href=href, filename=filename, home_loan=home_loan
                 )
 
         return accounts
@@ -186,76 +191,51 @@ class Netbank:
         href = self.accounts[accountnumber].href
         self.driver.get(href)
 
-    def set_date_widget(self, from_date=None, to_date=None):
+    def view_transactions(self):
+        """ Click the view transctions link within the Home Loan
+        accounts page
+
+        Non Home Loan accounts dont have this link.
         """
-        Taking a start and end date as a str in the format of
-        'DD/MM/YYYY', will set the date from the account page
-        and submit search.
-        """
-
-        try:
-            view_full_transaction_history = self.driver.find_element_by_xpath(
-                '//*[@id="lnk-transactions-viewAll"]'
-            )
-        except NoSuchElementException:
-            pass
-        else:
-            ActionChains(self.driver).move_to_element(view_full_transaction_history).perform()
-            time.sleep(2)
-            self.driver.execute_script("window.scrollBy(0, -150);")
-            time.sleep(2)
-            view_full_transaction_history.click()
-            time.sleep(2)
-
-        search_elem = self.driver.find_element_by_id(
-            'cba_advanced_search_trigger'
-        )
-        search_elem.click()
-        time.sleep(2)
-
-        date_elem = self.driver.find_element_by_xpath(
-            '//*[@id="ctl00_BodyPlaceHolder_radioSwitchDateRange_field"]/li[2]'
-        )
-        date_elem.click()
-        time.sleep(2)
-
-        from_date_elem = self.driver.find_element_by_xpath(
-            '//*[@id="ctl00_BodyPlaceHolder_fromCalTxtBox_field"]'
-        )
-        to_date_elem = self.driver.find_element_by_xpath(
-            '//*[@id="ctl00_BodyPlaceHolder_toCalTxtBox_field"]'
-        )
-
-        if from_date and to_date:
-            # if both set, use them, otherwise default to tallying last month
-            from_date_elem.send_keys(from_date)
-            to_date_elem.send_keys(to_date)
-
-        else:
-            from_date_elem.send_keys(self.from_date.strftime(self.date_fmt))
-            to_date_elem.send_keys(self.to_date.strftime(self.date_fmt))
-
-        self.driver.execute_script("window.scrollBy(0, 100)")
-        time.sleep(4)
-
-        search_button_elem = self.driver.find_element_by_id(
-            'ctl00_BodyPlaceHolder_lbSearch'
-        )
-        search_button_elem.click()
-        time.sleep(2)
-
-        pass
+        attempts = 0
+        while (attempts < 2):
+            attempts += 1
+            try:
+                search_elem = WebDriverWait(self.driver, 10).until(
+                    EC.presence_of_element_located(
+                        (By.XPATH, '//*[@id="lnk-transactions-viewAll"]')
+                    )
+                )
+            except TimeoutException:
+                pass
+            else:
+                search_elem.click()
+                break
 
     def download_ofx(self, filename):
-        try:
-            export_elem = self.driver.find_element_by_xpath(
-                '//*[@id="ctl00_ToobarFooterRight_updatePanelExport"]/div/a'
-            )
-            export_elem.send_keys(Keys.NULL)
-            export_elem.click()
-        except (NoSuchElementException, WebDriverException) as e:
-            print(e)
-            embed()
+        attempts = 0
+        while (attempts < 2):
+            attempts += 1
+            try:
+                export_elem = WebDriverWait(self.driver, 10).until(
+                    EC.presence_of_element_located(
+                        (
+                            By.XPATH,
+                            '//*[@id="ctl00_ToobarFooterRight_updatePanelExport"]/div/a' # noqa[E501]
+                        )
+                    )
+                )
+            except (
+                NoSuchElementException,
+                WebDriverException,
+                TimeoutException
+            ) as e:
+                print(e)
+                embed()
+            else:
+                export_elem.send_keys(Keys.NULL)
+                export_elem.click()
+                break
 
         time.sleep(2)
 
