@@ -5,7 +5,7 @@ from selenium.webdriver.support.ui import Select, WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import (
     NoSuchElementException, WebDriverException,
-    TimeoutException
+    TimeoutException, StaleElementReferenceException
 )
 import datetime
 import time
@@ -206,7 +206,7 @@ class Netbank:
                         (By.XPATH, '//*[@id="lnk-transactions-viewAll"]')
                     )
                 )
-            except TimeoutException:
+            except (TimeoutException, StaleElementReferenceException):
                 pass
             else:
                 search_elem.click()
