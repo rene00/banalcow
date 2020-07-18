@@ -10,12 +10,30 @@ from pathlib import Path
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
+        '--debug', 
+        required=False, action='store_true', default=False,
+        help='Debug'
+    )
+    parser.add_argument(
+        '--only-home-loans', 
+        required=False, action='store_true', default=False,
+        help='Only process home loans'
+    )
+    parser.add_argument(
         '--penny', required=False, action='store_true', default=False,
         help='Import into penny'
     )
     parser.add_argument(
         '--netbank', required=False, action='store_true', default=False,
         help='Download netbank data'
+    )
+    parser.add_argument(
+        '--retry', required=False, default=10, type=int,
+        help='Number of attempts to retry'
+    )
+    parser.add_argument(
+        '--sleep', required=False, default=30, type=int,
+        help='The number of seconds to sleep'
     )
     return parser.parse_args()
 
@@ -27,13 +45,15 @@ def main():
     if args.netbank:
         session = netbank.Netbank(
             conf.netbank.username, conf.netbank.password,
-            chrome_driver_executable_path=conf.chrome_driver_executable_path
+            chrome_driver_executable_path=conf.chrome_driver_executable_path,
+            only_home_loans=args.only_home_loans, retry=args.retry,
+            sleep=args.sleep
         )
         session.login()
-        accounts = session.accounts
+        accounts = session.get_accounts()
 
         for account, data in accounts.items():
-            session.access_account(account)
+            session.access_account(account, data.href)
             if data.home_loan:
                 session.view_transactions()
             session.download_ofx(data.filename)
