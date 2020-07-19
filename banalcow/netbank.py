@@ -191,12 +191,24 @@ class Netbank:
         return accounts
 
     def logout(self):
-        logout = WebDriverWait(self.driver, self.sleep).until(
-            EC.presence_of_element_located(
-                (By.XPATH, '//*[@id="header"]/div[2]/nav/div[1]/ul/li[3]/a')
-            )
-        )
-        logout.click()
+        attempts = 0
+        while attempts < self.retry:
+            attempts += 1
+            try:
+                logout = WebDriverWait(self.driver, self.sleep).until(
+                    EC.presence_of_element_located(
+                        (By.XPATH, '//*[@id=header]/div[2]/nav/div[1]/ul/li[3]')
+                    )
+                )
+            except TimeoutException:
+                break
+
+            try:
+                logout.click()
+            except StaleElementReferenceException:
+                pass
+            else:
+                break
 
     def access_homepage(self):
         self.driver.get(self.homepage)
