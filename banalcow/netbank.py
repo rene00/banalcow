@@ -191,8 +191,12 @@ class Netbank:
         return accounts
 
     def logout(self):
-        submit_button = self.driver.find_element_by_xpath('//*[@id="header"]/div[2]/nav/div[1]/ul/li[3]/a')
-        submit_button.click()
+        logout = WebDriverWait(self.driver, self.sleep).until(
+            EC.presence_of_element_located(
+                (By.XPATH, '//*[@id="header"]/div[2]/nav/div[1]/ul/li[3]/a')
+            )
+        )
+        logout.click()
 
     def access_homepage(self):
         self.driver.get(self.homepage)
