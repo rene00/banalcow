@@ -273,5 +273,15 @@ class Netbank:
             print(e)
         else:
             submit_button.click()
-            time.sleep(2)
-            shutil.move('OFXData.ofx', filename)
+
+        ofxdata_filename = 'OFXData.ofx'
+        count = 1
+        while not os.path.exists(ofxdata_filename):
+            time.sleep(1)
+            if count > self.retry:
+                raise NetbankError(
+                    "Unable to find file {0}".
+                    format(filename)
+                )
+            count += 1
+        shutil.move(ofxdata_filename, filename)
