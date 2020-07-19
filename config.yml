@@ -1,4 +1,4 @@
 pypass:
   path: /home/rene/.password-store
 penny: True
-chrome_driver_executable_path: /usr/lib/chromium-browser/chromedriver
+chrome_driver_executable_path: /usr/bin/chromedriver
