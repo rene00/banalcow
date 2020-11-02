@@ -1,10 +1,12 @@
 import argparse
 from banalcow import netbank, config, penny
 from banalcow.logger import logger
+from selenium.common.exceptions import WebDriverException
 import sys
 import time
 import os
 from pathlib import Path
+import traceback
 
 
 def parse_args():
@@ -49,11 +51,26 @@ def main():
             only_home_loans=args.only_home_loans, retry=args.retry,
             sleep=args.sleep
         )
-        session.login()
+
+        try:
+            session.login()
+        except WebDriverException as e:
+            logger.error('Failed to login')
+            logger.error(traceback.format_ext())
+            session.driver.quit()
+            sys.exit()
+
         accounts = session.get_accounts()
 
         for account, data in accounts.items():
-            session.access_account(account, data.href)
+            try:
+                session.access_account(account, data.href)
+            except WebDriverException as e:
+                logger.error('Failed to access account')
+                logger.error(traceback.format_ext())
+                session.driver.quit()
+                sys.exit()
+
             if data.home_loan:
                 session.view_transactions()
             session.download_ofx(data.filename)
