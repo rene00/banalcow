@@ -53,6 +53,6 @@ class Penny:
         input_field = self.driver.find_element_by_xpath('//*[@id="upload"]')
         input_field.send_keys(os.getcwd() + "/" + filename)
         submit_button = self.driver.find_element_by_xpath(
-            '//*[@id="page-wrapper"]/div[2]/form/div/div/div/input'
+            '/html/body/div[1]/div/div[2]/div/div/div/form/div/div/input'
         )
         submit_button.click()
