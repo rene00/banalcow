@@ -11,6 +11,7 @@ import datetime
 import time
 import shutil
 import os
+from enum import Enum, unique
 from banalcow import banalutil
 from banalcow.driver import BanalDriver
 
@@ -21,6 +22,13 @@ class NetbankError(Exception):
 
 class FileNotFoundError(OSError):
     pass
+
+@unique
+class AccountType(Enum):
+    HOME_LOAN = 1
+    COMPLETE_ACCESS = 2
+    CREDIT_CARD = 3
+    MISA = 4
 
 
 class Netbank:
@@ -122,12 +130,13 @@ class Netbank:
 
         account = namedtuple(
             'account',
-            'name balance available href filename home_loan'
+            'name balance available href filename account_type'
         )
 
         accounts = {}
         count = 1
         while True:
+            account_type = None
 
             try:
                 self.driver.find_element_by_xpath('//*[@id="StartMainContent"]/div/div[2]/div[1]/main/section[1]/div/div[1]/div[{0}]'.format(count))
@@ -140,11 +149,16 @@ class Netbank:
                 count += 1
                 continue
 
-            home_loan = False
             if name.get_attribute('title').lower() == 'home loan':
-                home_loan = True
+                account_type = AccountType.HOME_LOAN
+            elif name.get_attribute('title').lower() == 'complete access':
+                account_type = AccountType.COMPLETE_ACCESS
+            elif name.get_attribute('title').lower() == 'mastercard platinum':
+                account_type = AccountType.CREDIT_CARD
+            elif name.get_attribute('title').lower() == 'misa':
+                account_type = AccountType.MISA
 
-            if self.only_home_loans and not home_loan:
+            if self.only_home_loans and account_type != AccountType.HOME_LOAN:
                 count += 1
                 continue
 
@@ -173,7 +187,7 @@ class Netbank:
                         available.get_attribute('title'),
                         href.get_attribute('href'),
                         filename,
-                        home_loan
+                        account_type
                     )
                 )
 
@@ -183,7 +197,7 @@ class Netbank:
                 available=available.get_attribute('title'),
                 href=href.get_attribute('href'),
                 filename=filename,
-                home_loan=home_loan
+                account_type=account_type
             )
 
             count += 1
@@ -242,16 +256,19 @@ class Netbank:
             else:
                 break
 
-    def download_ofx(self, filename):
+    def download_ofx(self, filename, account_type):
         attempts = 0
         while (attempts < self.retry):
             attempts += 1
             try:
+                element_xpath = '//*[@id="ctl00_CustomFooterContentPlaceHolder_updatePanelExport1"]/div'
+                if account_type == AccountType.COMPLETE_ACCESS:
+                    element_xpath = '//*[@id="export-link"]'
                 export_elem = WebDriverWait(self.driver, self.sleep).until(
                     EC.presence_of_element_located(
                         (
                             By.XPATH,
-                            '//*[@id="ctl00_CustomFooterContentPlaceHolder_updatePanelExport1"]/div'
+                            element_xpath
                         )
                     )
                 )
@@ -260,11 +277,19 @@ class Netbank:
                 WebDriverException,
                 TimeoutException
             ) as e:
-                print(e)
+                if self.debug:
+                    print(e)
+
+                if attempts == self.retry:
+                    if not self.debug:
+                        session.logout()
+                        self.driver.quit()
+                    raise NetbankError("Unable to find export element")
             else:
                 export_elem.click()
                 break
 
+        """
         try:
             export_type_elem = Select(
                 self.driver.find_element_by_xpath(
@@ -276,11 +301,34 @@ class Netbank:
             print(e)
         else:
             export_type_elem.select_by_value('OFX')
+        """
 
         try:
-            submit_button = self.driver.find_element_by_xpath(
-                '//*[@id="ctl00_CustomFooterContentPlaceHolder_lbExport1"]'
-            )
+            if account_type == AccountType.COMPLETE_ACCESS:
+                export_type_elem = self.driver.find_element_by_xpath(
+                    '//*[@id="export-format-type"]/div/div[2]/label'
+                )
+            else:
+                export_type_elem = Select(
+                    self.driver.find_element_by_xpath(
+                        '//*[@id="ctl00_CustomFooterContentPlaceHolder_ddlExportType1_field"]'
+
+                    )
+                )
+        except (NoSuchElementException, WebDriverException) as e:
+            print(e)
+        else:
+            if account_type == AccountType.COMPLETE_ACCESS:
+                export_type_elem.click()
+            else:
+                export_type_elem.select_by_value('OFX')
+
+
+        try:
+            submit_button_xpath = '//*[@id="ctl00_CustomFooterContentPlaceHolder_lbExport1"]'
+            if account_type == AccountType.COMPLETE_ACCESS:
+                submit_button_xpath = '//*[@id="txnListExport-submit-btn"]'
+            submit_button = self.driver.find_element_by_xpath(submit_button_xpath)
         except (NoSuchElementException, WebDriverException) as e:
             print(e)
         else:

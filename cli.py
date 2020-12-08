@@ -49,7 +49,7 @@ def main():
             conf.netbank.username, conf.netbank.password,
             chrome_driver_executable_path=conf.chrome_driver_executable_path,
             only_home_loans=args.only_home_loans, retry=args.retry,
-            sleep=args.sleep
+            sleep=args.sleep, debug=args.debug
         )
 
         try:
@@ -71,13 +71,15 @@ def main():
                 session.driver.quit()
                 sys.exit()
 
-            if data.home_loan:
+            if data.account_type == netbank.AccountType.HOME_LOAN:
                 session.view_transactions()
-            session.download_ofx(data.filename)
+
+            session.download_ofx(data.filename, data.account_type)
             session.access_homepage()
 
-        session.logout()
-        session.driver.quit()
+        if not args.debug:
+            session.logout()
+            session.driver.quit()
 
     if args.penny:
         try:
